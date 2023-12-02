@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Input;
 
 public static class EnumerableExtensions
 {
@@ -154,6 +155,30 @@ public static class EnumerableExtensions
               (seq, item) => seq.Concat(new[] { item })
             );
         }
+        return result;
+    }
+
+    public static TResult[] MultiMax<T, TResult>(this IEnumerable<T> self, params Func<T, TResult>[] selectors)
+    {
+        using var e = self.GetEnumerator();
+        var comparer = Comparer<TResult>.Default;
+
+        var result = new TResult[selectors.Length];
+        if (!e.MoveNext()) return result;
+
+        for (int i = 0; i < selectors.Length; i++)
+            result[i] = selectors[i](e.Current);
+
+        while (e.MoveNext())
+        {
+            for (int i = 0; i < selectors.Length; i++)
+            {
+                var (x, y) = (result[i], selectors[i](e.Current));
+                if (comparer.Compare(x, y) < 0)
+                    result[i] = y;
+            }
+        }
+
         return result;
     }
 }

@@ -1,4 +1,4 @@
-﻿using AdventOfCode2021.Util;
+﻿using AOC.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
