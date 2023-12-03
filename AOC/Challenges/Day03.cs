@@ -27,13 +27,10 @@ internal class Day03 : ChallengeBase
         var numberRanges = FindNumberRanges(grid);
 
         return grid.Cells()
-            .Where(cell => grid[cell] != '.' && !char.IsNumber(grid[cell]))
-            .Select(sym => grid.SurroundingCells(sym, true).ToList())
-            .SelectMany(cell => numberRanges
-                .Where(range => range.Intersect(cell).Any()))
-            .Distinct()
-            .Select(range => RangeToInt(grid, range))
-            .Sum();
+            .Where(cell => IsSymbol(cell, grid))
+            .Select(sym => SurroundingCells(sym, grid))
+            .SelectMany(cells => NeighboringRanges(cells, numberRanges))
+            .Sum(range => RangeToInt(grid, range));
     }
 
     public override object Part2(string input)
@@ -42,12 +39,9 @@ internal class Day03 : ChallengeBase
         var numberRanges = FindNumberRanges(grid);
         return grid.Cells()
             .Where(cell => grid[cell] == '*')
-            .Select(sym => numberRanges
-                .Where(range => range.Intersect(grid.SurroundingCells(sym, true)).Any()).ToList())
-                .Where(ranges => ranges.Count == 2)
-                .Select(ranges => (a: ranges[0], b: ranges[^1]))
-            .Select(ratio => RangeToInt(grid, ratio.a) * RangeToInt(grid, ratio.b))
-            .Sum();
+            .Select(sym => NeighboringRanges(grid.SurroundingCells(sym, true).ToList(), numberRanges).ToList())
+            .Where(ranges => ranges.Count == 2)
+            .Sum(ranges => RangeToInt(grid, ranges[0]) * RangeToInt(grid, ranges[^1]));
     }
 
     private static int RangeToInt(Grid<char> grid, IReadOnlyList<(int row, int col)> range)
@@ -65,6 +59,21 @@ internal class Day03 : ChallengeBase
                 .Where(cells => cells.Any())
                 .ToList())
             .ToList();
+    }
+
+    private static IEnumerable<List<(int row, int col)>> NeighboringRanges(List<(int row, int col)> cells, List<List<(int row, int col)>> numberRanges)
+    {
+        return numberRanges.Where(range => range.Intersect(cells).Any());
+    }
+
+    private static List<(int row, int col)> SurroundingCells((int row, int col) sym, Grid<char> grid)
+    {
+        return grid.SurroundingCells(sym, true).ToList();
+    }
+
+    private static bool IsSymbol((int row, int col) cell, Grid<char> grid)
+    {
+        return grid[cell] != '.' && !char.IsNumber(grid[cell]);
     }
 
     private const string sample = @"
