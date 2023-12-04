@@ -16,6 +16,11 @@ public class StringParser
         str = input;
     }
 
+    public char Peek()
+    {
+        return str[cursor];
+    }
+
     public int ReadInt()
     {
         if (!TryReadInt(out var result))
@@ -71,12 +76,13 @@ public class StringParser
         return int.TryParse(str.AsSpan(start, cursor - start), out result);
     }
 
-    public void Skip(int length)
+    public StringParser Skip(int length)
     {
         cursor += length;
+        return this;
     }
 
-    public void SkipExact(string skip)
+    public StringParser SkipExact(string skip)
     {
         int j = 0;
         while (cursor < str.Length && j < skip.Length)
@@ -89,9 +95,11 @@ public class StringParser
 
         if (j < skip.Length - 1)
             throw new Exception("SkipExact expended available material before completing pattern");
+
+        return this;
     }
 
-    public void SkipAny(string chars)
+    public StringParser SkipAny(string chars)
     {
         while (cursor < str.Length)
         {
@@ -100,12 +108,16 @@ public class StringParser
             
             cursor++;
         }
+
+        return this;
     }
 
-    public void SkipWhile(Func<char, bool> predicate)
+    public StringParser SkipWhile(Func<char, bool> predicate)
     {
         while (cursor < str.Length && predicate(str[cursor]))
             cursor++;
+
+        return this;
     }
 
     public char ReadChar()
