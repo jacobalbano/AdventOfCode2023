@@ -46,7 +46,6 @@ public class StringParser
 
     public string ReadUntil(char term, bool skip)
     {
-
         int start = cursor, index = cursor;
         while (index < str.Length && str[index] != term)
             index++;
@@ -79,6 +78,12 @@ public class StringParser
     public StringParser Skip(int length)
     {
         cursor += length;
+        return this;
+    }
+
+    public StringParser SkipUntil(char c, bool goPast)
+    {
+        ReadUntil(c, goPast);
         return this;
     }
 

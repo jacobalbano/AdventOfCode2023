@@ -25,8 +25,8 @@ internal class Day04 : ChallengeBase
     {
         return input.ToLines()
             .Select(Scratchcard.Parse)
-            .Select(x => 1 << x.Winners.Intersect(x.Drawn).Count())
-            .Sum(x => x >> 1);
+            .Select(x => (1 << x.Winners.Intersect(x.Drawn).Count()) >> 1)
+            .Sum();
     }
 
     public override object Part2(string input)

@@ -46,8 +46,7 @@ internal class Day02 : ChallengeBase
         public static Game Parse(string str)
         {
             var parser = new StringParser(str);
-            parser.ReadUntil(' ', skip: true);
-            int id = parser.ReadInt();
+            int id = parser.SkipUntil(' ', goPast: true).ReadInt();
             parser.SkipExact(": ");
 
             var pulls = new List<BlockSet>();
@@ -69,11 +68,7 @@ internal class Day02 : ChallengeBase
             while (parser.HasMaterial)
             {
                 var num = parser.ReadInt();
-                parser.Skip(1);
-                var c = parser.ReadChar();
-                parser.SkipWhile(char.IsLetter);
-
-                switch (c)
+                switch (parser.Skip(1).ReadChar())
                 {
                     case 'r': r += num; break;
                     case 'g': g += num; break;
@@ -81,7 +76,7 @@ internal class Day02 : ChallengeBase
                     default: throw new Exception("Unhandled cube color");
                 }
 
-                if (!parser.TryReadChar(out c) || c == ';')
+                if (!parser.SkipWhile(char.IsLetter).TryReadChar(out char c) || c == ';')
                     return new BlockSet(r, g, b);
 
                 switch (c)
