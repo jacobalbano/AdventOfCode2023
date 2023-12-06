@@ -7,6 +7,12 @@ using System.Windows.Input;
 
 public static class EnumerableExtensions
 {
+    public static IEnumerable<long> RangeL(long start, long length)
+    {
+        for (long i = 0; i < length; ++i)
+            yield return start + i;
+    }
+
     public static int[] ToArray(this Range range)
     {
         int start = range.Start.Value,

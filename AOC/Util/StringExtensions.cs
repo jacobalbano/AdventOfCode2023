@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 public static class StringExtensions
 {
+    public static string[] SplitSpaces(this string str)
+    {
+        return str.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    }
+
     public static IEnumerable<string> ToLines(this string input)
     {
         using StringReader sr = new StringReader(input);
