@@ -7,6 +7,44 @@ using System.Windows.Input;
 
 public static class EnumerableExtensions
 {
+    public static IEnumerable<IReadOnlyList<T>> Pivot<T>(this IEnumerable<IEnumerable<T>> self)
+    {
+        var enums = self.Select(x => x.GetEnumerator())
+            .ToList();
+
+        while (true)
+        {
+            if (!enums.All(x => x.MoveNext()))
+                yield break;
+
+            var result = new T[enums.Count];
+            for (int i = 0; i < enums.Count; i++)
+                result[i] = enums[i].Current;
+
+            yield return result;
+        }
+    }
+
+    public static IEnumerable<T> RepeatInfinitely<T>(this IEnumerable<T> self)
+    {
+        for (var e = self.GetEnumerator(); ;)
+        {
+            if (e.MoveNext())
+                yield return e.Current;
+            else
+                e.Reset();
+        }
+    }
+
+    public static IEnumerable<T> ToEnumerable<T>(this IEnumerator<T> e, bool started)
+    {
+        if (!started) e.MoveNext();
+        do
+        {
+            yield return e.Current;
+        } while (e.MoveNext());
+    }
+
     public static IEnumerable<long> RangeL(long start, long length)
     {
         for (long i = 0; i < length; ++i)
