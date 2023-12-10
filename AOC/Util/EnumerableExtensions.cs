@@ -7,6 +7,23 @@ using System.Windows.Input;
 
 public static class EnumerableExtensions
 {
+    public static IEnumerable<T> TakeUntil<T>(this IEnumerable<T> self, Func<T, bool> predicate)
+    {
+        foreach (var item in self)
+        {
+            yield return item;
+            if (predicate(item))
+                break;
+        }
+    }
+
+    public static IEnumerable<T> Iterate<T>(T seed, Func<T, T> iterate)
+    {
+        yield return seed;
+        while (true)
+            yield return seed = iterate(seed);
+    }
+
     public static IEnumerable<IReadOnlyList<T>> Pivot<T>(this IEnumerable<IEnumerable<T>> self)
     {
         var enums = self.Select(x => x.GetEnumerator())
