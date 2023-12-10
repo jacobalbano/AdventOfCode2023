@@ -107,6 +107,8 @@ public class Grid<T> : IEnumerable<T>
                 yield return (row, col);
     }
 
+    public bool IsValidPosition((int row, int col) position) => IsValidPosition(position.row, position.col);
+
     public bool IsValidPosition(int row, int col)
     {
         return row >= 0
