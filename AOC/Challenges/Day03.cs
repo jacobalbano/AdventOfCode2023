@@ -44,34 +44,34 @@ internal class Day03 : ChallengeBase
             .Sum(ranges => RangeToInt(grid, ranges[0]) * RangeToInt(grid, ranges[^1]));
     }
 
-    private static int RangeToInt(Grid<char> grid, IReadOnlyList<(int row, int col)> range)
+    private static int RangeToInt(Grid<char> grid, IReadOnlyList<GridCell> range)
     {
         return (int) range.Select(cell => char.GetNumericValue(grid[cell]))
             .Aggregate((a, b) => a * 10 + b);
     }
 
-    private static List<List<(int row, int col)>> FindNumberRanges(Grid<char> grid)
+    private static List<List<GridCell>> FindNumberRanges(Grid<char> grid)
     {
         return Enumerable.Range(0, grid.Rows)
             .Select(row => Enumerable.Range(0, grid.Columns).Select(col => (row, col)).ToList())
             .SelectMany(rowCells => rowCells.PartitionBy(cell => !char.IsNumber(grid[cell]))
-                .Select(cell => cell.ToList())
+                .Select(cell => cell.Select(x => new GridCell(x.row, x.col)).ToList())
                 .Where(cells => cells.Any())
                 .ToList())
             .ToList();
     }
 
-    private static IEnumerable<List<(int row, int col)>> NeighboringRanges(List<(int row, int col)> cells, List<List<(int row, int col)>> numberRanges)
+    private static IEnumerable<List<GridCell>> NeighboringRanges(List<GridCell> cells, List<List<GridCell>> numberRanges)
     {
         return numberRanges.Where(range => range.Intersect(cells).Any());
     }
 
-    private static List<(int row, int col)> SurroundingCells((int row, int col) sym, Grid<char> grid)
+    private static List<GridCell> SurroundingCells(GridCell sym, Grid<char> grid)
     {
         return grid.SurroundingCells(sym, true).ToList();
     }
 
-    private static bool IsSymbol((int row, int col) cell, Grid<char> grid)
+    private static bool IsSymbol(GridCell cell, Grid<char> grid)
     {
         return grid[cell] != '.' && !char.IsNumber(grid[cell]);
     }
