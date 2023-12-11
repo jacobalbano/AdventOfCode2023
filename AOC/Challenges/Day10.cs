@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Input;
 using static AOC.Common.Solvers.GridPathSolver;
 
 namespace AOC.Challenges;
@@ -84,7 +85,108 @@ internal class Day10 : ChallengeBase
             L7JLJL-JLJLJL--JLJ.L"));
     }
 
-    private enum Pipe
+    public override object Part1(string input)
+    {
+        return FindPipeSections(new Grid<PipeSection>(input, PipeSection.Parse)).Count / 2;
+    }
+
+    public override object Part2(string input)
+    {
+        var grid = new Grid<PipeSection>(input, PipeSection.Parse);
+        var sections = FindPipeSections(grid);
+
+        var bends = new[] { SectionType.Vertical, SectionType.NorthToEast, SectionType.NorthToWest };
+
+        int count = 0;
+        for (int r = 0; r < grid.Rows; r++)
+        {
+            bool inside = false;
+            for (int c = 0; c < grid.Columns; c++)
+            {
+                if (bends.Contains(grid[r, c].Type))
+                    inside = !inside;
+                else if (inside && grid[r, c].Type == SectionType.None)
+                    count++;
+            }
+        }
+
+        return count;
+    }
+
+    private List<PipeSection> FindPipeSections(Grid<PipeSection> pipes)
+    {
+        var last = pipes.Cells()
+            .Select(x => pipes[x])
+            .Where(x => x.Type == SectionType.Start)
+            .Single();
+
+        var position = pipes.SurroundingCells(last.Cell, includeDiagonals: false)
+            .Select(x => pipes[x])
+            .Where(x => x.CanConnectTo(last.Cell))
+            .First();
+
+        var path = new List<PipeSection> { last };
+        while (position != path.First())
+        {
+            path.Add(position);
+            (last, position) = (position, pipes[position.GetNext(last)]);
+        }
+
+        foreach (var section in pipes.Except(path))
+            pipes[section.Cell] = new PipeSection(SectionType.None, section.Cell);
+
+        var start = path.First().Cell;
+        var hookups = pipes.SurroundingCells(start, false)
+            .Where(x => pipes[x].CanConnectTo(start))
+            .Select(x => Direction.BetweenCells(x, start))
+            .ToList();
+
+        bool north = false, south = false, east = false, west = false;
+        foreach (var item in hookups)
+        {
+            if (item == Direction.North) north = true;
+            if (item == Direction.South) south = true;
+            if (item == Direction.East) east = true;
+            if (item == Direction.West) west = true;
+        }
+
+        pipes[start] = new PipeSection((north, south, east, west) switch
+        {
+            (true, true, _, _) => SectionType.Vertical,
+            (_, _, true, true) => SectionType.Horizontal,
+            (true, _, true, _) => SectionType.NorthToEast,
+            (true, _, _, true) => SectionType.NorthToWest,
+            (_, true, _, true) => SectionType.SouthToWest,
+            (_, true, true, _) => SectionType.SouthToEast,
+
+            _ => throw new NotImplementedException(),
+        }, start);
+
+        WritePipes(pipes);
+        return path;
+    }
+
+    private void WritePipes<T>(Grid<T> pipes)
+    {
+        Logger.LogLine("--- pipes ---");
+        for (int r = 0; r < pipes.Rows; r++)
+            Logger.LogLine(string.Join("", pipes.RowValues(r)));
+    }
+
+    public record class Direction(int X, int Y)
+    {
+        public static readonly Direction North = new(0, -1);
+        public static readonly Direction South = new(0, 1);
+        public static readonly Direction East = new(1, 0);
+        public static readonly Direction West = new(-1, 0);
+
+        public static Direction BetweenCells(GridCell previous, GridCell cell) => new(
+            previous.X - cell.X,
+            previous.Y - cell.Y
+        );
+    }
+
+    private enum SectionType
     {
         None = '.',
         Start = 'S',
@@ -96,46 +198,67 @@ internal class Day10 : ChallengeBase
         SouthToEast = 'F',
     }
 
-    public override object Part1(string input)
+    private record class PipeSection(SectionType Type, GridCell Cell)
     {
-        return FindPipeSections(new Grid<Pipe>(input, c => (Pipe)c)).Count / 2;
-    }
-
-    private static List<(int row, int col)> FindPipeSections(Grid<Pipe> pipes)
-    {
-        var last = pipes.Cells()
-            .Where(x => pipes[x] == Pipe.Start)
-            .Single();
-
-        var position = pipes.SurroundingCells(last, includeDiagonals: false)
-            .Where(x => pipes[x] == Pipe.Horizontal || pipes[x] == Pipe.Vertical)
-            .First();
-
-        var path = new List<(int row, int col)> { last };
-        while (position != path.First())
+        public static PipeSection Parse(char c, GridCell cell)
         {
-            path.Add(position);
-            (last, position) = (position, steps[pipes[position]]
-                .Select(x => (x.r + position.row, x.c + position.col))
-                .Where(x => x != last).Single());
+            return new PipeSection((SectionType)c, cell);
         }
 
-        return path;
+        public bool CanConnectTo(GridCell cell)
+        {
+            if (!steps.TryGetValue(Type, out var frontier))
+                return false;
+
+            return frontier.Contains(new(cell.X - Cell.X, cell.Y - Cell.Y));
+        }
+
+        public GridCell GetNext(PipeSection previous)
+        {
+            /*
+             * this = horizontal,   (x: 2, y: 1)
+             * last = start,        (x: 1, y: 1)
+             * frontier = W, E
+             * 
+             * we came from W  (-1, 0)
+             * 
+             * how to get back to W?
+             *      (last.X - X, last.Y - Y)
+             * 
+             * take frontier which is not W
+             */
+
+            if (!steps.TryGetValue(Type, out var frontier))
+                throw new NotImplementedException();
+
+            var nextDir = frontier.First(x => x != Direction.BetweenCells(previous.Cell, Cell));
+            return new GridCell(Cell.Row + nextDir.Y, Cell.Col + nextDir.X);
+        }
+
+        private static readonly Dictionary<SectionType, Direction[]> steps = new()
+        {
+            [SectionType.Vertical] = new[] { Direction.North, Direction.South },
+            [SectionType.Horizontal] = new[] { Direction.West, Direction.East },
+            [SectionType.NorthToEast] = new[] { Direction.North, Direction.East },
+            [SectionType.NorthToWest] = new[] { Direction.North, Direction.West },
+            [SectionType.SouthToWest] = new[] { Direction.South, Direction.West },
+            [SectionType.SouthToEast] = new[] { Direction.South, Direction.East },
+        };
+
+        public override string ToString()
+        {
+            return Type switch
+            {
+                SectionType.None => " ",
+                SectionType.Horizontal => "─",
+                SectionType.Vertical => "│",
+                SectionType.NorthToEast => "└",
+                SectionType.NorthToWest => "┘",
+                SectionType.SouthToEast => "┌",
+                SectionType.SouthToWest => "┐",
+                SectionType.Start => "S",
+                _ => throw new UnreachableCodeException()
+            };
+        }
     }
-
-    private static readonly (int r, int c)
-        north = (-1, 0),
-        south = (1, 0),
-        east  = (0, 1),
-        west  = (0, -1);
-
-    private static readonly Dictionary<Pipe, (int r, int c)[]> steps = new()
-    {
-        [Pipe.Vertical] = new[] { north, south },
-        [Pipe.Horizontal] = new[] { west, east },
-        [Pipe.NorthToEast] = new[] { north, east },
-        [Pipe.NorthToWest] = new[] { north, west },
-        [Pipe.SouthToWest] = new[] { south, west },
-        [Pipe.SouthToEast] = new[] { south, east },
-    };
 }
