@@ -53,6 +53,23 @@ public static class EnumerableExtensions
         }
     }
 
+    public static IEnumerable<T> Cycle<T>(this IEnumerable<T> self)
+    {
+        var e = self.GetEnumerator();
+        if (!e.MoveNext())
+            yield break;
+
+        for (var first = e.Current; ;)
+        {
+            yield return e.Current;
+            if (!e.MoveNext())
+            {
+                yield return first;
+                break;
+            }
+        }
+    }
+
     public static IEnumerable<T> ToEnumerable<T>(this IEnumerator<T> e, bool started)
     {
         if (!started) e.MoveNext();
